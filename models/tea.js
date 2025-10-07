@@ -4,6 +4,13 @@ import mongoose from 'mongoose';
 const teaSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },                 // e.g. Sencha
+
+    type: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'TeaType',
+  required: true
+},
+
     steepTime: { type: Number, required: true },            // in minutes
     rating: { type: Number, min: 1, max: 5 },               // 1–5 stars
     note: { type: String },                                 // short note
