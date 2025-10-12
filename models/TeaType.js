@@ -7,13 +7,16 @@ const teaTypeSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      enum: ['green', 'black', 'oolong', 'white', 'herbal', 'pu-erh', 'rooibos'],
       trim: true,
+      enum: ['green', 'black', 'oolong', 'white', 'herbal', 'pu-erh', 'rooibos'],
     },
-    description: { type: String, default: '' }, // optioneel
+    description: { type: String, default: '' },
   },
   { timestamps: true, versionKey: false }
 );
 
-const TeaType = mongoose.models.TeaType || mongoose.model('TeaType', teaTypeSchema);
+// IMPORTANT: export a MODEL (not the schema)
+const TeaType =
+  mongoose.models.TeaType || mongoose.model('TeaType', teaTypeSchema);
+
 export default TeaType;

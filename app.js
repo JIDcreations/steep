@@ -31,7 +31,7 @@ app.use('/api/test', testRouter);
 app.use('/api/messages', messagesRouter); // 👈 mount messages router
 app.use('/api/users', usersRouter);
 app.use('/api/teas', teaRoutes);
-app.use('/api/tea-types', teaTypeRoutes);
+app.use('/api/teaTypes', teaTypeRoutes);
 
 
 

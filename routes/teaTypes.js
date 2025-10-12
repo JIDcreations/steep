@@ -4,27 +4,48 @@ import TeaType from '../models/TeaType.js';
 
 const router = express.Router();
 
-// lijst
+// List all types
 router.get('/', async (_req, res) => {
-  try { res.json(await TeaType.find().sort({ name: 1 })); }
-  catch (e) { res.status(500).json({ message: 'Error fetching tea types', error: e }); }
+  try {
+    const types = await TeaType.find({})
+      .sort({ name: 1 })
+      .select('_id name description');
+    res.json(types);
+  } catch (e) {
+    console.error('GET /api/teaTypes error:', e);
+    res.status(500).json({ message: 'Error fetching tea types', error: String(e?.message || e) });
+  }
 });
 
-// één type
-router.get('/:id', async (req, res) => {
+// Seed defaults (idempotent)
+router.post('/seed', async (_req, res) => {
   try {
-    const t = await TeaType.findById(req.params.id);
-    if (!t) return res.status(404).json({ message: 'TeaType not found' });
-    res.json(t);
-  } catch (e) { res.status(400).json({ message: 'Invalid tea type id', error: e }); }
-});
+    const defaults = [
+      { name: 'green', description: '' },
+      { name: 'black', description: '' },
+      { name: 'oolong', description: '' },
+      { name: 'white', description: '' },
+      { name: 'herbal', description: '' },
+      { name: 'pu-erh', description: '' },
+      { name: 'rooibos', description: '' },
+    ];
 
-// aanmaken
-router.post('/', async (req, res) => {
-  try {
-    const saved = await new TeaType(req.body).save();
-    res.status(201).json(saved);
-  } catch (e) { res.status(400).json({ message: 'Error creating tea type', error: e }); }
+    await Promise.all(
+      defaults.map(d =>
+        TeaType.findOneAndUpdate(
+          { name: d.name },
+          { $setOnInsert: d },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        )
+      )
+    );
+
+    const types = await TeaType.find({}).sort({ name: 1 }).select('_id name');
+    res.json({ ok: true, types });
+  } catch (e) {
+    console.error('POST /api/teaTypes/seed error:', e);
+    res.status(500).json({ message: 'Error seeding tea types', error: String(e?.message || e) });
+  }
 });
 
 export default router;
