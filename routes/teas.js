@@ -1,23 +1,45 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import Tea from '../models/tea.js';
 
 const router = express.Router();
 
-// ✅ GET all teas (met populate van user & type)
-router.get('/', async (_req, res) => {
+// GET /api/teas?q=&type=&limit=&skip=
+router.get('/', async (req, res) => {
   try {
-    const teas = await Tea.find()
-      .populate('user', 'username avatarColor')   // toon enkel specifieke user velden
-      .populate('type', 'name description')       // toon naam & beschrijving van TeaType
-      .sort({ createdAt: -1 });
+    const { q, type, limit = '20', skip = '0' } = req.query;
 
-    res.json(teas);
+    const filter = { public: true };
+
+    if (q) {
+      filter.$text = { $search: q }; // uses text index on name+note
+    }
+
+    if (type && mongoose.Types.ObjectId.isValid(type)) {
+      filter.type = type; // TeaType _id
+    }
+
+    const lim = Math.min(Number(limit), 50);
+    const skp = Number(skip) || 0;
+
+    const [items, total] = await Promise.all([
+      Tea.find(filter)
+        .populate('user', 'username avatarColor')
+        .populate('type', 'name description')
+        .sort({ createdAt: -1 })
+        .skip(skp)
+        .limit(lim)
+        .select('name rating note moodTag type user createdAt'),
+      Tea.countDocuments(filter),
+    ]);
+
+    res.json({ items, total, hasMore: skp + items.length < total });
   } catch (e) {
     res.status(500).json({ message: 'Error fetching teas', error: e });
   }
 });
 
-// ✅ GET één specifieke tea (ook met populate)
+// GET /api/teas/:id
 router.get('/:id', async (req, res) => {
   try {
     const tea = await Tea.findById(req.params.id)

@@ -30,5 +30,10 @@ const teaSchema = new mongoose.Schema(
   { timestamps: true, versionKey: false }
 );
 
+// ✅ NEW: indexes for feed performance & search
+teaSchema.index({ createdAt: -1 });
+teaSchema.index({ type: 1, createdAt: -1 });
+teaSchema.index({ name: 'text', note: 'text' }); // enables ?q= search
+
 const Tea = mongoose.models.Tea || mongoose.model('Tea', teaSchema);
 export default Tea;
