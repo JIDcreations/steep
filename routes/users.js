@@ -2,22 +2,26 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import User from '../models/user.js';
-import Tea from '../models/tea.js'; // voor profile count / favorites
+import Tea from '../models/tea.js'; // for profile count / favorites
 
 const router = express.Router();
 
 /**
+ * GET /api/users/__ping
+ * Quick check to confirm this router is mounted in production.
+ */
+router.get('/__ping', (req, res) => res.json({ ok: true, where: 'users router' }));
+
+/**
  * GET /api/users?search=jas
- * Zoekt gebruikers op username (case-insensitive).
+ * Search users by username (case-insensitive).
  */
 router.get('/', async (req, res) => {
   try {
     const { search = '', limit = '20' } = req.query;
     const lim = Math.min(Number(limit), 50);
 
-    const filter = search
-      ? { $text: { $search: search } }
-      : {}; // leeg -> alles (optioneel)
+    const filter = search ? { $text: { $search: search } } : {};
 
     const users = await User.find(filter)
       .select('username avatarColor')
@@ -26,13 +30,12 @@ router.get('/', async (req, res) => {
 
     res.json(users);
   } catch (e) {
-    res.status(500).json({ message: 'Error searching users', error: e });
+    res.status(500).json({ message: 'Error searching users', error: e.message });
   }
 });
 
 /**
  * GET /api/users/:id/friends
- * Geeft lijst van wie :id volgt.
  */
 router.get('/:id/friends', async (req, res) => {
   try {
@@ -42,13 +45,12 @@ router.get('/:id/friends', async (req, res) => {
     if (!u) return res.status(404).json({ message: 'User not found' });
     res.json(u.friends);
   } catch (e) {
-    res.status(500).json({ message: 'Error fetching friends', error: e });
+    res.status(500).json({ message: 'Error fetching friends', error: e.message });
   }
 });
 
 /**
  * POST /api/users/:id/follow/:targetId
- * Volg iemand (geen duplicates).
  */
 router.post('/:id/follow/:targetId', async (req, res) => {
   try {
@@ -67,13 +69,12 @@ router.post('/:id/follow/:targetId', async (req, res) => {
     if (!updated) return res.status(404).json({ message: 'User not found' });
     res.json({ ok: true, friends: updated.friends });
   } catch (e) {
-    res.status(500).json({ message: 'Error following user', error: e });
+    res.status(500).json({ message: 'Error following user', error: e.message });
   }
 });
 
 /**
  * DELETE /api/users/:id/follow/:targetId
- * Ontvolgen.
  */
 router.delete('/:id/follow/:targetId', async (req, res) => {
   try {
@@ -87,13 +88,12 @@ router.delete('/:id/follow/:targetId', async (req, res) => {
     if (!updated) return res.status(404).json({ message: 'User not found' });
     res.json({ ok: true, friends: updated.friends });
   } catch (e) {
-    res.status(500).json({ message: 'Error unfollowing user', error: e });
+    res.status(500).json({ message: 'Error unfollowing user', error: e.message });
   }
 });
 
 /**
  * GET /api/users/:id/profile
- * Voor je profiel header (naam, kleur, posts, aantal vrienden).
  */
 router.get('/:id/profile', async (req, res) => {
   try {
@@ -110,7 +110,54 @@ router.get('/:id/profile', async (req, res) => {
       friends: user.friends.length,
     });
   } catch (e) {
-    res.status(500).json({ message: 'Error fetching profile', error: e });
+    res.status(500).json({ message: 'Error fetching profile', error: e.message });
+  }
+});
+
+/**
+ * POST /api/users/:id/favorites
+ * Body: { "teaId": "<ObjectId>" }
+ */
+router.post('/:id/favorites', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { teaId } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(teaId)) {
+      return res.status(400).json({ message: 'Invalid ids' });
+    }
+
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const hasIt = (user.favorites || []).some(f => f.toString() === teaId);
+
+    user.favorites = hasIt
+      ? user.favorites.filter(f => f.toString() !== teaId)
+      : [ ...(user.favorites || []), teaId ];
+
+    await user.save();
+    const populated = await user.populate('favorites');
+    res.json({ ok: true, action: hasIt ? 'removed' : 'added', favorites: populated.favorites });
+  } catch (e) {
+    res.status(500).json({ message: 'Error updating favorites', error: e.message });
+  }
+});
+
+/**
+ * GET /api/users/:id/favorites
+ */
+router.get('/:id/favorites', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid user id' });
+    }
+    const user = await User.findById(id).populate('favorites');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user.favorites || []);
+  } catch (e) {
+    res.status(500).json({ message: 'Error fetching favorites', error: e.message });
   }
 });
 
