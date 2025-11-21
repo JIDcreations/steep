@@ -56,10 +56,40 @@ router.get('/:id', async (req, res) => {
 // CREATE
 router.post('/', async (req, res) => {
   try {
-    const saved = await new Tea(req.body).save();
-    res.status(201).json(saved);
+    const {
+      name,
+      type,
+      rating,
+      steepTime,
+      note,
+      moodTag,
+      color,
+      userId,
+    } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ message: 'userId is required' });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: 'Invalid userId' });
+    }
+
+    const tea = await Tea.create({
+      name,
+      type,
+      rating,
+      steepTime,
+      note,
+      moodTag,
+      color,
+      user: userId,   // koppeling met ingelogde user
+      public: true,   // blijft in de globale feed
+    });
+
+    res.status(201).json(tea);
   } catch (e) {
-    res.status(400).json({ message: 'Error creating tea', error: e });
+    res.status(400).json({ message: 'Error creating tea', error: e.message });
   }
 });
 
