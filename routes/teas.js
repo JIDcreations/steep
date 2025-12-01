@@ -29,7 +29,7 @@ router.get('/', async (req, res) => {
         .sort({ createdAt: -1 })
         .skip(skp)
         .limit(lim)
-        .select('name rating note moodTag type user createdAt'),
+        .select('name rating note moodTag color type user createdAt'),
       Tea.countDocuments(filter),
     ]);
 
