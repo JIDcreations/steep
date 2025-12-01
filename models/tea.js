@@ -2,7 +2,7 @@
 import mongoose from 'mongoose';
 
 // ✅ Define allowed color swatches (5 fixed options)
-const ALLOWED_COLORS = ['#E6D7D2', '#C2A98B', '#A88E85', '#8D7570', '#5E4F4D'];
+const ALLOWED_COLORS = ['#b0a09bff', '#C2A98B', '#A88E85', '#8D7570', '#5E4F4D', '#243235',   '#040403', ];
 
 const teaSchema = new mongoose.Schema(
   {
