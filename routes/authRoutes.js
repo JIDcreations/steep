@@ -22,14 +22,16 @@ router.post('/register', async (req, res) => {
     const cleanUsername = username.trim();
     const cleanPassword = password.trim();
 
-    const existing = await User.findOne({ username: cleanUsername });
+    const existing = await User.findOne({
+      username: new RegExp(`^${cleanUsername}$`, 'i'),
+    });
     if (existing) {
       return res.status(409).json({ message: 'Username already taken' });
     }
 
     const user = await User.create({
       username: cleanUsername,
-      password: cleanPassword, // plain-text, school assignment
+      password: cleanPassword, // plain-text (schoolopdracht)
       avatarColor: avatarColor || '#C2A98B',
     });
 
@@ -55,7 +57,7 @@ router.post('/register', async (req, res) => {
  */
 router.post('/login', async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password } = req.body || {};
 
     if (!username || !username.trim()) {
       return res.status(400).json({ message: 'Username is required' });
@@ -67,14 +69,31 @@ router.post('/login', async (req, res) => {
     const cleanUsername = username.trim();
     const cleanPassword = password.trim();
 
-    const user = await User.findOne({ username: cleanUsername });
+    // Case-insensitive username search
+    const user = await User.findOne({
+      username: new RegExp(`^${cleanUsername}$`, 'i'),
+    });
+
     if (!user) {
+      console.log('Login failed: user not found', cleanUsername);
       return res.status(404).json({ message: 'User not found' });
     }
 
+    console.log(
+      'Login attempt:',
+      cleanUsername,
+      'given pw:',
+      cleanPassword,
+      'stored pw:',
+      user.password
+    );
+
     if (user.password !== cleanPassword) {
+      console.log('Login failed: invalid password for', cleanUsername);
       return res.status(401).json({ message: 'Invalid password' });
     }
+
+    console.log('Login success for', cleanUsername);
 
     return res.json({
       ok: true,
