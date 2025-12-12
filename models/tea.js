@@ -1,7 +1,7 @@
 // models/tea.js
 import mongoose from 'mongoose';
 
-// ✅ Define allowed color swatches (7 fixed options)
+// allowed color swatches
 const ALLOWED_COLORS = [
   '#b0a09bff',
   '#C2A98B',
@@ -12,9 +12,20 @@ const ALLOWED_COLORS = [
   '#040403',
 ];
 
+const recipeSchema = new mongoose.Schema(
+  {
+    ingredients: [{ type: String }],
+    waterMl: { type: Number },
+    tempC: { type: Number },
+    amount: { type: String },
+    steps: { type: String },
+  },
+  { _id: false }
+);
+
 const teaSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true }, // e.g. Sencha
+    name: { type: String, required: true },
 
     type: {
       type: mongoose.Schema.Types.ObjectId,
@@ -22,20 +33,12 @@ const teaSchema = new mongoose.Schema(
       required: true,
     },
 
-    steepTime: { type: Number, required: true }, // in minutes
-    rating: { type: Number, min: 1, max: 5 }, // 1–5 stars
-    note: { type: String }, // How was it?
+    steepTime: { type: Number, required: true },
+    rating: { type: Number, min: 1, max: 5 },
+    note: { type: String },
 
-    // 🍵 Recipe (optional, structured but flexible)
-    recipe: {
-      ingredients: [{ type: String, trim: true }], // e.g. ["green tea", "mint"]
-      waterMl: { type: Number },                    // e.g. 250
-      tempC: { type: Number },                      // e.g. 80
-      amount: { type: String, trim: true },         // e.g. "2g / 1 tsp / 1 bag"
-      steps: { type: String, trim: true },          // optional instructions
-    },
+    recipe: recipeSchema,
 
-    // 🎨 limited to preset colors
     color: { type: String, enum: ALLOWED_COLORS },
 
     moodTag: {
@@ -43,7 +46,7 @@ const teaSchema = new mongoose.Schema(
       enum: ['calming', 'energizing', 'cozy', 'focus'],
     },
 
-    public: { type: Boolean, default: true }, // visible on feed
+    public: { type: Boolean, default: true },
 
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -51,12 +54,12 @@ const teaSchema = new mongoose.Schema(
       required: true,
     },
 
-    likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // who liked
+    likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   },
   { timestamps: true, versionKey: false }
 );
 
-// ✅ Indexes for feed performance & search
+// indexes
 teaSchema.index({ createdAt: -1 });
 teaSchema.index({ type: 1, createdAt: -1 });
 teaSchema.index({ name: 'text', note: 'text' });
