@@ -1,3 +1,4 @@
+// routes/teas.js
 import express from 'express';
 import mongoose from 'mongoose';
 import Tea from '../models/tea.js';
@@ -62,6 +63,7 @@ router.post('/', async (req, res) => {
       rating,
       steepTime,
       note,
+      recipe, // ✅ added
       moodTag,
       color,
       userId,
@@ -81,6 +83,7 @@ router.post('/', async (req, res) => {
       rating,
       steepTime,
       note,
+      recipe, // ✅ added
       moodTag,
       color,
       user: userId,   // koppeling met ingelogde user
