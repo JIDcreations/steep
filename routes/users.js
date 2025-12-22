@@ -115,6 +115,33 @@ router.get('/:id/profile', async (req, res) => {
 });
 
 /**
+ * PATCH /api/users/:id
+ * Body: { "bio": "..." }
+ */
+router.patch('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { bio } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid user id' });
+    }
+
+    const updated = await User.findByIdAndUpdate(
+      id,
+      { bio: typeof bio === 'string' ? bio : '' },
+      { new: true, runValidators: true }
+    ).select('username avatarColor bio friends favorites settings');
+
+    if (!updated) return res.status(404).json({ message: 'User not found' });
+
+    res.json({ ok: true, user: updated });
+  } catch (e) {
+    res.status(500).json({ message: 'Error updating user', error: e.message });
+  }
+});
+
+/**
  * POST /api/users/:id/favorites
  * Body: { "teaId": "<ObjectId>" }
  */
