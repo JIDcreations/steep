@@ -18,13 +18,13 @@ const ALLOWED_AVATAR_COLORS = [
 
 /**
  * GET /api/users/__ping
+ * Quick check to confirm this router is mounted in production.
  */
-router.get('/__ping', (req, res) =>
-  res.json({ ok: true, where: 'users router' })
-);
+router.get('/__ping', (req, res) => res.json({ ok: true, where: 'users router' }));
 
 /**
  * GET /api/users?search=jas
+ * Search users by username (case-insensitive).
  */
 router.get('/', async (req, res) => {
   try {
@@ -68,16 +68,10 @@ router.post('/:id/follow/:targetId', async (req, res) => {
   try {
     const { id, targetId } = req.params;
 
-    if (
-      !mongoose.Types.ObjectId.isValid(id) ||
-      !mongoose.Types.ObjectId.isValid(targetId)
-    ) {
+    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(targetId)) {
       return res.status(400).json({ message: 'Invalid ids' });
     }
-
-    if (id === targetId) {
-      return res.status(400).json({ message: 'Cannot follow yourself' });
-    }
+    if (id === targetId) return res.status(400).json({ message: 'Cannot follow yourself' });
 
     const updated = await User.findByIdAndUpdate(
       id,
@@ -119,9 +113,7 @@ router.delete('/:id/follow/:targetId', async (req, res) => {
  */
 router.get('/:id/profile', async (req, res) => {
   try {
-    const user = await User.findById(req.params.id)
-      .select('username avatarColor friends bio');
-
+    const user = await User.findById(req.params.id).select('username avatarColor friends bio');
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     const posts = await Tea.countDocuments({ user: user._id });
@@ -153,14 +145,13 @@ router.patch('/:id', async (req, res) => {
 
     const update = {};
 
+    // Only update bio if it was provided
     if (typeof bio === 'string') {
       update.bio = bio;
     }
 
-    if (
-      typeof avatarColor === 'string' &&
-      ALLOWED_AVATAR_COLORS.includes(avatarColor)
-    ) {
+    // Only update avatarColor if provided and allowed
+    if (typeof avatarColor === 'string' && ALLOWED_AVATAR_COLORS.includes(avatarColor)) {
       update.avatarColor = avatarColor;
     }
 
@@ -184,39 +175,30 @@ router.patch('/:id', async (req, res) => {
 
 /**
  * POST /api/users/:id/favorites
+ * Body: { "teaId": "<ObjectId>" }
  */
 router.post('/:id/favorites', async (req, res) => {
   try {
     const { id } = req.params;
     const { teaId } = req.body;
 
-    if (
-      !mongoose.Types.ObjectId.isValid(id) ||
-      !mongoose.Types.ObjectId.isValid(teaId)
-    ) {
+    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(teaId)) {
       return res.status(400).json({ message: 'Invalid ids' });
     }
 
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const hasIt = (user.favorites || []).some(
-      f => f.toString() === teaId
-    );
+    const hasIt = (user.favorites || []).some(f => f.toString() === teaId);
 
     user.favorites = hasIt
       ? user.favorites.filter(f => f.toString() !== teaId)
       : [ ...(user.favorites || []), teaId ];
 
     await user.save();
-
     const populated = await user.populate('favorites');
 
-    res.json({
-      ok: true,
-      action: hasIt ? 'removed' : 'added',
-      favorites: populated.favorites,
-    });
+    res.json({ ok: true, action: hasIt ? 'removed' : 'added', favorites: populated.favorites });
   } catch (e) {
     res.status(500).json({ message: 'Error updating favorites', error: e.message });
   }
